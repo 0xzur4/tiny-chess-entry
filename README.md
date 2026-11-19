@@ -40,16 +40,18 @@ standard Michniewski piece-square sets. All code is my own.
 Practice trials (6 games each, vs depth-2/855, depth-3/1073, depth-4/1199,
 nodes-100k/1392, nodes-250k/1497, nodes-500k/1596), node budget 80,000:
 
-- trial-0: **Elo 708** (0 wins, 1 draw, 5 losses)
-- trial-1: **Elo 1279** (1 win, 4 draws, 1 loss)
-- trial-2: **Elo 1545** (4 wins, 1 draw, 1 loss)
+- trial-0: **Elo 997** (1 win, 1 draw, 4 losses)
+- trial-1: **Elo 1364** (3 wins, 1 draw, 2 losses)
+- trial-2: **Elo 1364** (3 wins, 1 draw, 2 losses)
 
-Mean practice Elo **1177** — above the 1154 floor to enter the final, but
-below the house baseline (sunfish-4K, ~1365). Trial-0 is the weak spot:
-the engine draws depth-2 there and loses the rest. Slowest single-run
-move was 6.26 s (median ~2.0 s), under the 10 s move limit; no move
-timed out in single-trial runs. Determinism verified: the same practice
-trial run twice produces identical games.
+Mean practice Elo **1242** — above the 1154 floor to enter the final, but
+below the house baseline (sunfish-4K, ~1365). The earlier build had a
+quiescence bug (stand-pat returned while in check) that collapsed trial-0
+to 708; fixing it (quiescence now searches check evasions instead of
+standing pat) lifted the mean from 1177 to 1242. Slowest single-run move
+was 4.53 s (median ~2.1 s), under the 10 s move limit; no move timed out
+in single-trial runs. Determinism verified: trial-0 run twice produces
+identical games, move for move.
 
 ## Reproduce
 
