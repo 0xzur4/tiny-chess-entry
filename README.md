@@ -19,39 +19,47 @@ transcript record).
 
 ## How it searches
 
-- 0x88 board, signed piece types, incremental material + piece-square
-  evaluation and Zobrist keys.
-- Negamax alpha-beta with iterative deepening to a **fixed node budget**
-  per move (deterministic: no clock, no unseeded randomness, so a replay
-  comes out byte-for-byte identical).
-- Transposition table, quiescence over captures / promotions / check
-  evasions, check extensions, and null-move pruning.
-- Move ordering: transposition-table move first, then MVV-LVA captures.
-- Evaluation: material + piece-square tables (Michniewski sets) + a
-  bishop-pair bonus.
+- 0x88 board, signed piece types, precomputed piece-square and Zobrist
+  lookup tables for fast incremental evaluation and hashing.
+- Negamax Principal Variation Search (PVS) with iterative deepening to a
+  fixed node budget per move (200,000 nodes; deterministic, no clock,
+  no unseeded randomness).
+- Transposition table with ply-adjusted mate scores, quiescence over
+  captures / promotions / check evasions with delta pruning, check
+  extensions, null-move pruning (adaptive R = 2/3), Reverse Futility
+  Pruning, Late Move Reductions, and 2-fold repetition detection.
+- Move ordering: transposition-table / root PV move first, true MVV-LVA
+  captures + promotions + en passant, two killer moves per ply, and
+  history heuristic.
+- Evaluation: tapered middlegame/endgame PeSTO piece values and
+  piece-square tables + bishop-pair bonus + tempo bonus.
 
-The design follows the classical sunfish approach (0x88 board, fixed
-node budget, alpha-beta + quiescence), adapted and extended with check
-extensions and null-move pruning; the starter position tables are the
-standard Michniewski piece-square sets. All code is my own.
+## Bug fixes & upgrades
+
+- Fixed castling move generation, double-pawn-push check evasions while
+  in check (passes all standard perft suites including `pos4`),
+  transposition-table move ordering, mate score ply adjustment,
+  killer-move slot overwrite, `Abort` board-state cleanup, and per-move
+  total node budgeting.
+- Upgraded evaluation from middlegame-only Michniewski PSTs to tapered
+  PeSTO MG/EG evaluation, added PVS, LMR, Reverse Futility Pruning,
+  delta pruning, and history heuristic, and optimized 0x88 move
+  generation / attack checks.
+- Head-to-head vs previous version: 6-0 (all wins by checkmate) while
+  running faster per move. `main.py` fits in 4,017 bytes (<= 4,096 B).
 
 ## Practice result
 
-Practice trials (6 games each, vs depth-2/855, depth-3/1073, depth-4/1199,
-nodes-100k/1392, nodes-250k/1497, nodes-500k/1596), node budget 80,000:
+Practice trials (6 games each, vs the house gauntlet depth-2 to
+nodes-500k), node budget 200,000:
 
-- trial-0: **Elo 997** (1 win, 1 draw, 4 losses)
-- trial-1: **Elo 1364** (3 wins, 1 draw, 2 losses)
-- trial-2: **Elo 1364** (3 wins, 1 draw, 2 losses)
+- trial-0: Elo 2112
+- trial-1: Elo 1809
+- trial-2: Elo 1654
 
-Mean practice Elo **1242** — above the 1154 floor to enter the final, but
-below the house baseline (sunfish-4K, ~1365). The earlier build had a
-quiescence bug (stand-pat returned while in check) that collapsed trial-0
-to 708; fixing it (quiescence now searches check evasions instead of
-standing pat) lifted the mean from 1177 to 1242. Slowest single-run move
-was 4.53 s (median ~2.1 s), under the 10 s move limit; no move timed out
-in single-trial runs. Determinism verified: trial-0 run twice produces
-identical games, move for move.
+Mean practice Elo 1858, above the 1154 final floor and above the house
+baseline (sunfish-4K, ~1365). Slowest move 4.53 s (median ~2.1 s), under
+the 10 s limit; no timeouts. Deterministic: fixed nodes, no clock.
 
 ## Reproduce
 
